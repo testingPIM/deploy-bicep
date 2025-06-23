@@ -1,3 +1,4 @@
+name: truflle scan
 on:
   push:
     branches:
