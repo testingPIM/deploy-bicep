@@ -1,4 +1,4 @@
-name: truflle scan
+name: truffle scan
 on:
   pull_request:
     branches:
