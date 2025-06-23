@@ -1,6 +1,6 @@
 name: gitleaks
 on:
-  push:
+  pull_request:
     branches:
         - main
 
@@ -22,4 +22,4 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+          GITLEAKS_FAIL_ON: all 
