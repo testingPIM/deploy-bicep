@@ -2,7 +2,6 @@ param location string
 param resourceGroupName string
 param storageAccountName string
 param skuName string
-
 targetScope = 'subscription'
 module rgmodule 'modules/Microsoft.Resources/resourceGroups/resourceGroup.bicep' = {
   name:'rgdeploy'
