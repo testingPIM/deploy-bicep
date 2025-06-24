@@ -4,6 +4,7 @@ param storageAccountName string
 param skuName string
 // FAKE SECRET FOR DEMO PURPOSES ONLY
 // AZURE_STORAGE_KEY = "DefaultEndpointsProtocol=https;AccountName=fakestorage;AccountKey=fakeKey1234567890=;EndpointSuffix=core.windows.net"
+var aws_access_key string = 'AKIAIOSFODNN7EXAMPLE'
 
 targetScope = 'subscription'
 module rgmodule 'modules/Microsoft.Resources/resourceGroups/resourceGroup.bicep' = {

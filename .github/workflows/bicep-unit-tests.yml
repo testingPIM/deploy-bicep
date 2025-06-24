@@ -1,15 +1,17 @@
-name: gitleaks
+name: bicep-unit-tests
 on:
   pull_request:
     branches:
         - main
+        - staging
+        - dev
 
 
 jobs:
   scan:
     name: gitleaks
     runs-on: ubuntu-latest
-    environment: ${{github.ref_name == 'main' && 'Production'}}
+    environment: ${{github.ref_name == 'main' && 'Production' || github.ref_name == 'staging' && 'Preprod' || 'Dev'}}
     permissions:
         id-token: write
         contents: read
