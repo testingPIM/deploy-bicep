@@ -1,1 +1,2 @@
 # deploy-bicep
+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
