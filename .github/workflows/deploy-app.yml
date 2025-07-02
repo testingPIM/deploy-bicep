@@ -1,0 +1,119 @@
+name: Reusable Azure Deploy Workflow
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      webapp_name:
+        required: true
+        type: string
+      parameter_file:
+        required: true
+        type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_RESOURCE_GROUP:
+        required: true
+
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_path: ${{ steps.set-output.outputs.path }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.x'
+
+      - name: Build App
+        run: dotnet build ${{ inputs.project }}
+
+      - name: Publish App
+        run: dotnet publish ${{ inputs.project }} -c Release -o published
+
+    #   - name: Set Output Path
+    #     id: set-output
+    #     run: echo "path=published" >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: published/
+
+  release:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3  
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: published
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep What-If
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          template: ./infra/main.bicep
+          parameters: ${{ inputs.parameter_file }}
+          additionalArguments: '--what-if'
+
+      - name: Deploy Bicep
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          template: ./infra/main.bicep
+          parameters: ${{ inputs.parameter_file }}
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ inputs.webapp_name }}
+          package: published
+
+      - name: Smoke Test
+        run: |
+          echo "Testing homepage..."
+          curl --fail https://${{ inputs.webapp_name }}.azurewebsites.net/ || exit 1
+
+          echo "Testing /health endpoint..."
+          for i in {1..5}; do
+            resp=$(curl -s https://${{ inputs.webapp_name }}.azurewebsites.net/health | tr -d '"')
+            if [[ "$resp" == "Healthy" ]]; then echo "✅ Healthy"; exit 0; fi
+            echo "❌ Not healthy, retrying..."; sleep 5
+          done
+          echo "Health check failed."; exit 1

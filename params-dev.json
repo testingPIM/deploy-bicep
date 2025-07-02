@@ -1,0 +1,14 @@
+{
+  "keyVaultName": {
+    "value": "GHPOC1-keyvault-dev"
+  },
+  "location": {
+    "value": "eastus"
+  },
+  "skuName": {
+    "value": "standard"
+  },
+  "appName": {
+    "value": "ghpoc1-appservice-dev-test"
+  }
+}
