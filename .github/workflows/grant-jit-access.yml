@@ -1,0 +1,67 @@
+name: Grant JIT Access
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write       # To commit updates to jit-grants.json
+  issues: write         # Optional: to comment on issues
+
+jobs:
+  grant-access:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Validate approver
+        run: |
+          APPROVER="${{ github.actor }}"
+          echo "Approver: $APPROVER"
+          if ! grep -qx "$APPROVER" .github/.maintainers; then
+            echo " $APPROVER is not an authorized maintainer."
+            exit 1
+          fi
+
+      - name: Extract duration from issue body
+        id: extract
+        run: |
+          BODY=$(gh issue view ${{ github.event.issue.number }} --json body -q .body)
+          DURATION=$(echo "$BODY" | grep -oP 'Duration.*\*\*\K[0-9]+' || echo "1")
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+
+      - name: Grant Admin Access
+        id: grant
+        run: |
+          USER="${{ github.event.issue.user.login }}"
+          gh api -X PUT /repos/${{ github.repository }}/collaborators/$USER -f permission=admin
+          echo "Granted admin access to $USER"
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+
+      - name: Record Grant
+        run: |
+          USER="${{ github.event.issue.user.login }}"
+          APPROVER="${{ github.actor }}"
+          DURATION=${{ steps.extract.outputs.duration }}
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          EXPIRES=$(date -u -d "$NOW + $DURATION hour" +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq --arg user "$USER" \
+             --arg approver "$APPROVER" \
+             --arg granted_at "$NOW" \
+             --arg expires_at "$EXPIRES" \
+             '. += [{"username": $user, "granted_by": $approver, "granted_at": $granted_at, "expires_at": $expires_at}]' \
+             .github/jit-grants.json > temp.json && mv temp.json .github/jit-grants.json
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .github/jit-grants.json
+          git commit -m "Record JIT grant for $USER"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
