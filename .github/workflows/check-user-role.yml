@@ -1,0 +1,46 @@
+name: Check User Role
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'GitHub username to check'
+        required: true
+      issue_number:
+        description: 'Issue number to comment on (optional)'
+        required: false
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check-role:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check user role
+        id: check
+        run: |
+          USER="${{ github.event.inputs.username }}"
+          echo "Checking role for $USER..."
+
+          RESPONSE=$(gh api /repos/${{ github.repository }}/collaborators/$USER/permission || echo "not_found")
+          if [[ "$RESPONSE" == "not_found" ]]; then
+            echo "User $USER is not a collaborator or has not accepted the invite."
+            echo "role=none" >> $GITHUB_OUTPUT
+          else
+            ROLE=$(echo "$RESPONSE" | jq -r .permission)
+            echo "User $USER has role: $ROLE"
+            echo "role=$ROLE" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+
+      - name: Comment on issue (optional)
+        if: ${{ github.event.inputs.issue_number != '' }}
+        run: |
+          ROLE="${{ steps.check.outputs.role }}"
+          gh issue comment ${{ github.event.inputs.issue_number }} \
+            --body "🔍 Role check for **${{ github.event.inputs.username }}**: `$ROLE`"
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
