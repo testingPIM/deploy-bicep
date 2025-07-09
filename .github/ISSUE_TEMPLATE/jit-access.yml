@@ -1,0 +1,20 @@
+name: Request Temporary Admin Access
+description: Request temporary elevated access
+title: "[JIT] Access Request"
+labels: ["jit-request"]
+body:
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why do you need elevated access?
+      placeholder: I need to update branch protection rules.
+    validations:
+      required: true
+  - type: dropdown
+    id: duration
+    attributes:
+      label: Duration (hours)
+      options:
+        - 1
+        - 2
+        - 4
