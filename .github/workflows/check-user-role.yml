@@ -34,7 +34,7 @@ jobs:
             echo "role=$ROLE" >> $GITHUB_OUTPUT
           fi
         env:
-          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
 
       - name: Comment on issue (optional)
         if: ${{ github.event.inputs.issue_number != '' }}
@@ -43,4 +43,4 @@ jobs:
           gh issue comment ${{ github.event.inputs.issue_number }} \
             --body "🔍 Role check for **${{ github.event.inputs.username }}**: `$ROLE`"
         env:
-          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
