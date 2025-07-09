@@ -1,0 +1,41 @@
+name: Upgrade Collaborator Role to Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'GitHub username to upgrade'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade-role:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upgrade collaborator role
+        run: |
+          USER="${{ github.event.inputs.username }}"
+          echo "Attempting to upgrade $USER to admin..."
+
+          # Check current permission
+          RESPONSE=$(gh api /repos/${{ github.repository }}/collaborators/$USER/permission || echo "not_found")
+
+          if [[ "$RESPONSE" == "not_found" ]]; then
+            echo " $USER is not a collaborator or has not accepted the invite."
+            exit 1
+          fi
+
+          CURRENT_ROLE=$(echo "$RESPONSE" | jq -r .permission)
+          echo "Current role: $CURRENT_ROLE"
+
+          if [[ "$CURRENT_ROLE" == "admin" ]]; then
+            echo " $USER already has admin access."
+          else
+            echo " Upgrading $USER to admin..."
+            gh api -X PUT /repos/${{ github.repository }}/collaborators/$USER -f permission=admin
+            echo " Upgrade complete."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
