@@ -1,0 +1,56 @@
+name: Revoke Expired JIT Access
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Runs every 30 minutes
+
+permissions:
+  contents: write  # Needed to update jit-grants.json in the repo
+
+jobs:
+  revoke-access:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Revoke expired access
+        run: |
+          echo " Checking for expired JIT grants..."
+
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          TEMP=$(mktemp)
+          CHANGES=false
+
+          # Read current entries
+          jq -c '.[]' .github/jit-grants.json | while read -r entry; do
+            USER=$(echo "$entry" | jq -r .username)
+            EXPIRES=$(echo "$entry" | jq -r .expires_at)
+
+            if [[ "$NOW" > "$EXPIRES" ]]; then
+              echo " Revoking access for $USER (expired at $EXPIRES)"
+              gh api -X DELETE /repos/${{ github.repository }}/collaborators/$USER || echo " Failed to revoke $USER"
+              CHANGES=true
+            else
+              echo "$entry" >> "$TEMP"
+            fi
+          done
+
+          # If changes, update file and commit
+          if $CHANGES; then
+            echo " Updating jit-grants.json after revocation..."
+            jq -s '.' "$TEMP" > .github/jit-grants.json
+
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add .github/jit-grants.json
+            git commit -m " Revoked expired JIT access"
+            git push
+          else
+            echo " No expired JIT access to revoke."
+          fi
+
+          rm -f "$TEMP"
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
