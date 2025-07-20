@@ -29,12 +29,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy Bicep file with parameters (workaround for @ bug)
-        run: |
-          az deployment sub create \
-            --location eastus \
-            --template-file main.bicep \
-            --parameters \
-              rgName="rg-avm-dev" \
-              location="eastus"
+      - uses: azure/arm-deploy@v2
+        with:
+          scope: subscription
+          region: 'eastus'
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          template: ./main.bicep
 
