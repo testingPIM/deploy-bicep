@@ -17,6 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Upgrade Azure CLI (optional)
+        run: |
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+
       - name: Azure Login with OIDC
         uses: azure/login@v1
         with:
