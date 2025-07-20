@@ -1,4 +1,4 @@
-// main.bicep
+
 targetScope = 'subscription'
 param location string
 param rgName string
