@@ -36,6 +36,5 @@ jobs:
             --template-file main.bicep \
             --parameters \
               rgName="rg-avm-dev" \
-              kvName="kv-avm-dev-001" \
               location="eastus"
 
