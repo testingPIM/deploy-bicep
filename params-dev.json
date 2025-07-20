@@ -1,14 +1,15 @@
 {
-  "keyVaultName": {
-    "value": "GHPOC1-keyvault-dev"
-  },
-  "location": {
-    "value": "eastus"
-  },
-  "skuName": {
-    "value": "standard"
-  },
-  "appName": {
-    "value": "ghpoc1-appservice-dev-test"
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "rgName": {
+      "value": "rg-avm-demo"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "kvName": {
+      "value": "kv-avm-demo-001"
+    }
   }
 }
