@@ -29,9 +29,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy Bicep file with parameters
+      - name: Deploy Bicep file with parameters (workaround for @ bug)
         run: |
           az deployment sub create \
             --location eastus \
             --template-file main.bicep \
-            --parameters @params-dev.json
+            --parameters \
+              rgName="rg-avm-dev" \
+              kvName="kv-avm-dev-001" \
+              location="eastus"
+
